@@ -1,0 +1,119 @@
+.city-autocomplete {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+.city-autocomplete > input {
+  width: 100%;
+  min-width: 0;
+}
+.city-suggestions {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  width: max(100%, 260px);
+  max-width: calc(100vw - 90px);
+  z-index: 60;
+  background: #fff;
+  border: 1px solid #dfe6ef;
+  border-radius: 9px;
+  box-shadow: 0 12px 32px #061b3626;
+  overflow: hidden;
+  text-align: left;
+  color: #061b36;
+}
+.city-suggestions-heading {
+  padding: 12px 14px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #65758a;
+  letter-spacing: 0.4px;
+}
+.city-suggestions ul {
+  list-style: none;
+  padding: 0 5px;
+  margin: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.city-suggestions li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 10px;
+  min-height: 42px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #233c5a;
+}
+.city-suggestions li[aria-selected='true'],
+.city-suggestions li:hover {
+  background: #fff5d6;
+  color: #061b36;
+}
+.city-suggestions li svg {
+  color: #7b8ba0;
+}
+.city-suggestions li small {
+  margin-left: auto;
+  background: #eef2f7;
+  color: #42556e;
+  border-radius: 4px;
+  padding: 3px 5px;
+  font-size: 9px;
+  flex-shrink: 0;
+}
+.city-suggestions .city-suggestions-footer {
+  border-top: 1px solid #edf1f5;
+  padding: 10px 14px;
+  color: #65758a;
+  font-size: 9px;
+}
+.city-suggestions p {
+  font-size: 12px;
+  color: #65758a;
+  padding: 10px 14px;
+  margin: 0;
+  line-height: 1.6;
+}
+.hero-search > .hero-city {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 0.65;
+  min-width: 0;
+  padding: 0 12px;
+  color: #7a8798;
+  border-left: 1px solid #e4e8ef;
+}
+.market-hero {
+  overflow: visible;
+}
+.market-hero-art {
+  border-radius: 50% 13px 13px 0;
+}
+.filters .city-suggestions {
+  left: auto;
+  right: 0;
+}
+@media (max-width: 640px) {
+  .hero-search > .hero-city {
+    flex: 1;
+    padding: 2px 8px;
+    border-left: 0;
+    border-top: 1px solid #edf0f7;
+  }
+  .filters .city-suggestions {
+    left: 0;
+    right: auto;
+  }
+  .city-suggestions li {
+    min-height: 44px;
+  }
+  .city-suggestions .city-suggestions-footer {
+    display: none;
+  }
+}
