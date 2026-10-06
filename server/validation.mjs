@@ -39,7 +39,7 @@ export function serviceInput(body) {
 
 export function reviewInput(body) {
   const rating = Number(body.rating);
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
     fail(400, 'A nota deve estar entre 1 e 5.');
   }
 

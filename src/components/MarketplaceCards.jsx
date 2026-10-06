@@ -4,7 +4,7 @@ import { formatCurrency, formatDate } from '../app/formatters';
 import { Avatar, Status } from './ui';
 
 export function ProfessionalCard({ professional, onView }) {
-  const hasPortfolio = professional.portfolio?.length > 0;
+  const coverImage = professional.cover_image || professional.portfolio?.[0] || '';
 
   return (
     <article className="professional-card">
@@ -13,20 +13,17 @@ export function ProfessionalCard({ professional, onView }) {
         onClick={() => onView(professional)}
         aria-label={'Conhecer ' + professional.name}
       >
-        {hasPortfolio ? (
-          <img
-            src={professional.portfolio[0]}
-            alt={'Trabalho publicado por ' + professional.name}
-          />
+        {coverImage ? (
+          <img src={coverImage} alt={'Capa profissional de ' + professional.name} />
         ) : (
           <SpecialtyArt category={professional.specialty} />
         )}
         <SpecialtyBadge category={professional.specialty} />
-        {!hasPortfolio && <span className="cover-disclaimer">Ilustração da categoria</span>}
+        {!coverImage && <span className="cover-disclaimer">Ilustração da categoria</span>}
       </button>
       <div className="professional-content">
         <div className="professional-top">
-          <Avatar name={professional.name} />
+          <Avatar name={professional.name} image={professional.avatar_image} />
           <div>
             <h3>
               <button className="title-button" onClick={() => onView(professional)}>

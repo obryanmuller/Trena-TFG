@@ -47,14 +47,23 @@ export class UserService {
   }
 
   updateProfile(user, input) {
+    const isProfessional = user.role === 'professional';
+    const avatarImage =
+      isProfessional && input.avatar_image ? imageList([input.avatar_image])[0] : '';
+    const coverImage = isProfessional && input.cover_image ? imageList([input.cover_image])[0] : '';
+
     this.db
-      .prepare('UPDATE users SET name=?,city=?,specialty=?,bio=?,portfolio=? WHERE id=?')
+      .prepare(
+        'UPDATE users SET name=?,city=?,specialty=?,bio=?,portfolio=?,avatar_image=?,cover_image=? WHERE id=?',
+      )
       .run(
         textField(input.name, 'Nome', 3, 100),
         textField(input.city, 'Cidade e UF', 3, 100),
-        user.role === 'professional' ? specialty(input.specialty) : '',
+        isProfessional ? specialty(input.specialty) : '',
         textField(input.bio || ' ', 'Descrição', 0, 2000),
-        JSON.stringify(imageList(input.portfolio || [])),
+        JSON.stringify(isProfessional ? imageList(input.portfolio || []) : []),
+        avatarImage,
+        coverImage,
         user.id,
       );
 
@@ -84,8 +93,17 @@ export class UserService {
         'SELECT r.rating,r.comment,r.created_at,u.name client_name FROM reviews r JOIN users u ON u.id=r.client_id WHERE r.professional_id=? ORDER BY r.created_at DESC',
       )
       .all(user.id);
+    const completed_services = this.db
+      .prepare(
+        `SELECT s.id,s.title,s.description,s.category,s.city,s.budget,s.deadline,r.rating review_rating,r.comment review_comment
+         FROM services s
+         LEFT JOIN reviews r ON r.service_id=s.id
+         WHERE s.professional_id=? AND s.status='completed'
+         ORDER BY s.deadline DESC,s.rowid DESC`,
+      )
+      .all(user.id);
 
-    return { ...toPublicUser(user), reviews };
+    return { ...toPublicUser(user), reviews, completed_services };
   }
 
   findPublicById(id) {

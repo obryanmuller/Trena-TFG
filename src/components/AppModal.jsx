@@ -1,4 +1,18 @@
-import { ArrowRight, ArrowUpRight, Bell, Check, MapPin, MessageSquare, Star } from 'lucide-react';
+import { useState } from 'react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Bell,
+  BriefcaseBusiness,
+  Check,
+  LockKeyhole,
+  Mail,
+  MapPin,
+  MessageSquare,
+  ShieldCheck,
+  Star,
+  UserRound,
+} from 'lucide-react';
 import { CATEGORIES } from '../app/config';
 import { formatCurrency, formatDate, formatDateTime } from '../app/formatters';
 import { Avatar, Empty, Field, ImagesInput, Modal, Status } from './ui';
@@ -9,6 +23,8 @@ export default function AppModal({
   error,
   busy,
   photos,
+  avatarImage,
+  coverImage,
   notifications,
   conversations,
   authMode,
@@ -19,11 +35,14 @@ export default function AppModal({
   onAuthSubmit,
   onCreateService,
   onPhotosChange,
+  onAvatarImageChange,
+  onCoverImageChange,
   onError,
   onRequireAuth,
   onOpenModal,
   onInterest,
   onOpenServiceChat,
+  onOpenProfessionalProfile,
   onUpdateProfile,
   onReview,
   onChangeStatus,
@@ -36,8 +55,13 @@ export default function AppModal({
   const title = getModalTitle(modal, authMode);
 
   return (
-    <Modal title={title} onClose={onClose}>
-      {error && (
+    <Modal
+      title={title}
+      onClose={onClose}
+      className={modal.type === 'auth' ? 'auth-dialog' : ''}
+      hideHeading={modal.type === 'auth'}
+    >
+      {error && modal.type !== 'auth' && (
         <div className="alert" role="alert">
           {error}
         </div>
@@ -47,6 +71,7 @@ export default function AppModal({
           mode={authMode}
           role={authRole}
           busy={busy}
+          error={error}
           onModeChange={onAuthModeChange}
           onRoleChange={onAuthRoleChange}
           onSubmit={onAuthSubmit}
@@ -70,6 +95,7 @@ export default function AppModal({
           onRequest={() =>
             onRequireAuth(() => onOpenModal({ type: 'create', professional: modal.professional }))
           }
+          onOpenProfile={() => onOpenProfessionalProfile(modal.professional)}
         />
       )}
       {modal.type === 'service' && (
@@ -87,8 +113,12 @@ export default function AppModal({
         <ProfileForm
           user={user}
           photos={photos}
+          avatarImage={avatarImage}
+          coverImage={coverImage}
           busy={busy}
           onPhotosChange={onPhotosChange}
+          onAvatarImageChange={onAvatarImageChange}
+          onCoverImageChange={onCoverImageChange}
           onError={onError}
           onSubmit={onUpdateProfile}
         />
@@ -110,12 +140,13 @@ export default function AppModal({
           onConfirm={() => onChangeStatus(modal.serviceId, 'active', modal.professionalId)}
         />
       )}
-      {modal.type === 'complete' && (
-        <Confirmation
+      {modal.type === 'finish-service' && (
+        <FinishServiceForm
           busy={busy}
-          description="O trabalho foi entregue? Ao concluir o serviço, você poderá avaliar o profissional."
-          actionLabel="Sim, concluir serviço"
-          onConfirm={() => onChangeStatus(modal.serviceId, 'completed')}
+          photos={photos}
+          onPhotosChange={onPhotosChange}
+          onError={onError}
+          onSubmit={(data) => onChangeStatus(modal.serviceId, data.status, undefined, data)}
         />
       )}
       {modal.type === 'notifications' && (
@@ -130,100 +161,199 @@ export default function AppModal({
   );
 }
 
-function AuthForm({ mode, role, busy, onModeChange, onRoleChange, onSubmit }) {
+function AuthForm({ mode, role, busy, error, onModeChange, onRoleChange, onSubmit }) {
   const isRegistration = mode === 'register';
 
   return (
-    <>
-      <div className="segmented">
-        <button
-          className={mode === 'login' ? 'selected' : ''}
-          onClick={() => onModeChange('login')}
-        >
-          Entrar
-        </button>
-        <button
-          className={isRegistration ? 'selected' : ''}
-          onClick={() => onModeChange('register')}
-        >
-          Criar conta
-        </button>
-      </div>
-      <form onSubmit={onSubmit} className="form">
-        {isRegistration && (
-          <>
-            <Field label="Eu quero">
-              <select value={role} onChange={(event) => onRoleChange(event.target.value)}>
-                <option value="client">Contratar profissionais</option>
-                <option value="professional">Oferecer meus serviços</option>
-              </select>
-            </Field>
-            <Field label="Nome completo">
-              <input name="name" required minLength={3} maxLength={100} autoComplete="name" />
-            </Field>
-            <Field label="Cidade e UF">
-              <input
-                name="city"
-                required
-                minLength={3}
-                maxLength={100}
-                placeholder="Itajubá, MG"
-                autoComplete="address-level2"
-              />
-            </Field>
-            {role === 'professional' && (
+    <div className="auth-layout">
+      <aside className="auth-showcase">
+        <div className="auth-brand">
+          <span className="brand-symbol">
+            T<i />
+          </span>
+          <span>
+            TRENA<small>CONEXÕES QUE CONSTROEM</small>
+          </span>
+        </div>
+        <div className="auth-abstract" aria-hidden="true">
+          <span className="shape shape-panel" />
+          <span className="shape shape-rail" />
+          <span className="shape shape-ruler" />
+          <span className="shape shape-step" />
+          <span className="shape shape-line" />
+        </div>
+        <div className="auth-mascot-stage">
+          <img src="/mascote_joia.png" alt="Mascote da TRENA com capacete" />
+        </div>
+        <div className="auth-showcase-copy">
+          <span className="eyebrow">ACESSO À PLATAFORMA</span>
+          <h2>{isRegistration ? 'Seu projeto começa bem medido.' : 'Sua obra continua daqui.'}</h2>
+          <p>
+            Uma entrada simples para publicar serviços, negociar detalhes e acompanhar cada
+            combinação até a entrega.
+          </p>
+        </div>
+        <div className="auth-points">
+          <span>
+            <ShieldCheck size={16} /> Perfis verificados para organizar suas escolhas
+          </span>
+          <span>
+            <MessageSquare size={16} /> Conversas e solicitações no mesmo histórico
+          </span>
+        </div>
+      </aside>
+
+      <section className="auth-content">
+        <div className="auth-heading">
+          <span className="eyebrow">{isRegistration ? 'CRIAR CONTA' : 'ENTRAR'}</span>
+          <h2 id="modal-title">
+            {isRegistration ? 'Crie sua conta na TRENA' : 'Acesse sua conta'}
+          </h2>
+          <p>
+            {isRegistration
+              ? 'Escolha como você quer usar a plataforma e complete seus dados.'
+              : 'Use seu e-mail e senha para continuar seus projetos e conversas.'}
+          </p>
+        </div>
+
+        <div className={'segmented auth-tabs ' + (isRegistration ? 'register' : 'login')}>
+          <span className="auth-tab-indicator" aria-hidden="true" />
+          <button
+            type="button"
+            className={mode === 'login' ? 'selected' : ''}
+            onClick={() => onModeChange('login')}
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            className={isRegistration ? 'selected' : ''}
+            onClick={() => onModeChange('register')}
+          >
+            Criar conta
+          </button>
+        </div>
+
+        <div className="auth-slider" key={mode}>
+          {error && (
+            <div className="alert" role="alert">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={onSubmit} className="form auth-form">
+            {isRegistration && (
               <>
-                <Field label="Especialidade">
-                  <select name="specialty">
-                    {CATEGORIES.map((category) => (
-                      <option key={category}>{category}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Sobre seu trabalho">
-                  <textarea
-                    name="bio"
-                    maxLength={2000}
-                    placeholder="Conte sua experiência e os serviços que você oferece."
-                  />
-                </Field>
+                <div className="role-picker" aria-label="Tipo de conta">
+                  <button
+                    type="button"
+                    className={role === 'client' ? 'selected' : ''}
+                    onClick={() => onRoleChange('client')}
+                  >
+                    <UserRound size={18} />
+                    <span>
+                      Cliente
+                      <small>Quero contratar</small>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className={role === 'professional' ? 'selected' : ''}
+                    onClick={() => onRoleChange('professional')}
+                  >
+                    <BriefcaseBusiness size={18} />
+                    <span>
+                      Profissional
+                      <small>Quero trabalhar</small>
+                    </span>
+                  </button>
+                </div>
+                <div className="form-row">
+                  <Field label="Nome completo">
+                    <span className="input-shell">
+                      <UserRound size={17} />
+                      <input
+                        name="name"
+                        required
+                        minLength={3}
+                        maxLength={100}
+                        autoComplete="name"
+                      />
+                    </span>
+                  </Field>
+                  <Field label="Cidade e UF">
+                    <span className="input-shell">
+                      <MapPin size={17} />
+                      <input
+                        name="city"
+                        required
+                        minLength={3}
+                        maxLength={100}
+                        placeholder="Itajubá, MG"
+                        autoComplete="address-level2"
+                      />
+                    </span>
+                  </Field>
+                </div>
+                {role === 'professional' && (
+                  <>
+                    <Field label="Especialidade">
+                      <select name="specialty">
+                        {CATEGORIES.map((category) => (
+                          <option key={category}>{category}</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Sobre seu trabalho">
+                      <textarea
+                        name="bio"
+                        maxLength={2000}
+                        placeholder="Conte sua experiência e os serviços que você oferece."
+                      />
+                    </Field>
+                  </>
+                )}
               </>
             )}
-          </>
-        )}
-        <Field label="E-mail">
-          <input name="email" type="email" required autoComplete="email" maxLength={180} />
-        </Field>
-        <Field label="Senha">
-          <input
-            name="password"
-            type="password"
-            required
-            minLength={isRegistration ? 8 : 1}
-            maxLength={128}
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-          />
-        </Field>
-        {isRegistration && (
-          <p className="muted">
-            Use pelo menos 8 caracteres. Seu e-mail não aparece no perfil público.
+            <Field label="E-mail">
+              <span className="input-shell">
+                <Mail size={17} />
+                <input name="email" type="email" required autoComplete="email" maxLength={180} />
+              </span>
+            </Field>
+            <Field label="Senha">
+              <span className="input-shell">
+                <LockKeyhole size={17} />
+                <input
+                  name="password"
+                  type="password"
+                  required
+                  minLength={isRegistration ? 8 : 1}
+                  maxLength={128}
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                />
+              </span>
+            </Field>
+            {isRegistration && (
+              <p className="muted">
+                Use pelo menos 8 caracteres. Seu e-mail não aparece no perfil público.
+              </p>
+            )}
+            <button className="button full auth-submit" disabled={busy}>
+              {busy ? 'Aguarde...' : mode === 'login' ? 'Entrar na TRENA' : 'Criar minha conta'}
+              <ArrowRight size={18} />
+            </button>
+          </form>
+        </div>
+
+        <div className="demo-hint auth-demo">
+          <strong>Contas demo</strong>
+          <p>
+            <b>cliente@trena.demo</b> ou <b>profissional@trena.demo</b> · Senha: <b>Trena@2026</b>
           </p>
-        )}
-        <button className="button full" disabled={busy}>
-          {busy ? 'Aguarde…' : mode === 'login' ? 'Entrar na TRENA' : 'Criar minha conta'}
-          <ArrowRight size={18} />
-        </button>
-      </form>
-      <div className="demo-hint">
-        <strong>Conhecendo o protótipo?</strong>
-        <p>
-          Com a base de demonstração: <b>cliente@trena.demo</b> ou <b>profissional@trena.demo</b>
-          <br />
-          Senha: <b>Trena@2026</b>
-        </p>
-        <small>Contas e serviços fictícios para apresentação acadêmica.</small>
-      </div>
-    </>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -298,11 +428,11 @@ function CreateServiceForm({ modal, user, photos, busy, onPhotosChange, onError,
   );
 }
 
-function ProfessionalDetail({ professional, canRequest, onRequest }) {
+function ProfessionalDetail({ professional, canRequest, onRequest, onOpenProfile }) {
   return (
     <div className="profile-detail">
       <div className="profile-intro">
-        <Avatar name={professional.name} large />
+        <Avatar name={professional.name} image={professional.avatar_image} large />
         <div>
           <span className="specialty">{professional.specialty}</span>
           <p className="location">
@@ -317,6 +447,9 @@ function ProfessionalDetail({ professional, canRequest, onRequest }) {
           </span>
         </div>
       </div>
+      <button type="button" className="text-button profile-link-action" onClick={onOpenProfile}>
+        Ver perfil completo <ArrowUpRight size={16} />
+      </button>
       <h3>Sobre o profissional</h3>
       <p>{professional.bio || 'Este profissional ainda não adicionou uma descrição.'}</p>
       <h3>Portfólio</h3>
@@ -393,6 +526,23 @@ function ServiceDetail({
           ))}
         </div>
       )}
+      {service.completion_images?.length > 0 && (
+        <>
+          <h3>Fotos da conclusão</h3>
+          <div className="portfolio">
+            {service.completion_images.map((image, index) => (
+              <a href={image} key={image} target="_blank" rel="noreferrer">
+                <img src={image} alt={`Foto de conclusão ${index + 1}`} />
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+      {service.closure_reason && (
+        <p className="info-box">
+          <MessageSquare size={18} /> {service.closure_reason}
+        </p>
+      )}
       {service.professional_name && (
         <p>
           Profissional: <strong>{service.professional_name}</strong>
@@ -420,9 +570,9 @@ function ServiceDetail({
           {service.status === 'active' && (
             <button
               className="button full"
-              onClick={() => onOpenModal({ type: 'complete', serviceId: service.id })}
+              onClick={() => onOpenModal({ type: 'finish-service', serviceId: service.id })}
             >
-              Concluir serviço <Check size={18} />
+              Encerrar serviço <Check size={18} />
             </button>
           )}
           {service.status === 'completed' && !service.review_rating && (
@@ -453,7 +603,18 @@ function Detail({ label, value }) {
   );
 }
 
-function ProfileForm({ user, photos, busy, onPhotosChange, onError, onSubmit }) {
+function ProfileForm({
+  user,
+  photos,
+  avatarImage,
+  coverImage,
+  busy,
+  onPhotosChange,
+  onAvatarImageChange,
+  onCoverImageChange,
+  onError,
+  onSubmit,
+}) {
   const isClient = user.role === 'client';
 
   return (
@@ -477,15 +638,119 @@ function ProfileForm({ user, photos, busy, onPhotosChange, onError, onSubmit }) 
         <textarea name="bio" defaultValue={user.bio} maxLength={2000} rows={4} />
       </Field>
       {!isClient && (
-        <ImagesInput
-          value={photos}
-          onChange={onPhotosChange}
-          onError={onError}
-          label="Fotos do seu portfólio"
-        />
+        <>
+          <div className="profile-image-tools">
+            <ImagesInput
+              value={avatarImage}
+              onChange={(images) => onAvatarImageChange(images.slice(-1))}
+              onError={onError}
+              label="Foto de perfil"
+            />
+            <ImagesInput
+              value={coverImage}
+              onChange={(images) => onCoverImageChange(images.slice(-1))}
+              onError={onError}
+              label="Foto de capa"
+            />
+          </div>
+          <ImagesInput
+            value={photos}
+            onChange={onPhotosChange}
+            onError={onError}
+            label="Fotos do seu portfólio"
+          />
+        </>
       )}
       <button className="button full" disabled={busy}>
         Salvar alterações <Check size={18} />
+      </button>
+    </form>
+  );
+}
+
+function FinishServiceForm({ busy, photos, onPhotosChange, onError, onSubmit }) {
+  const [status, setStatus] = useState('completed');
+  const [rating, setRating] = useState(5);
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.currentTarget));
+    onSubmit({
+      status,
+      completion_images: status === 'completed' ? photos : [],
+      closure_reason: data.closure_reason,
+      rating: data.rating,
+    });
+  }
+
+  return (
+    <form className="form" onSubmit={handleSubmit}>
+      <Field label="Resultado do serviço">
+        <select value={status} onChange={(event) => setStatus(event.target.value)}>
+          <option value="completed">Concluído</option>
+          <option value="paused">Pausado</option>
+          <option value="not_completed">Não concluído</option>
+        </select>
+      </Field>
+      {status === 'completed' ? (
+        <>
+          <ImagesInput
+            value={photos}
+            onChange={onPhotosChange}
+            onError={onError}
+            label="Adicionar fotos da conclusão"
+          />
+          <Field label="Nota do profissional">
+            <div className="star-rating" role="radiogroup" aria-label="Nota do profissional">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={value <= rating ? 'selected' : ''}
+                  aria-label={`${value} de 5`}
+                  aria-checked={value === rating}
+                  role="radio"
+                  onClick={() => setRating(value)}
+                >
+                  <Star size={24} />
+                </button>
+              ))}
+              <input type="hidden" name="rating" value={rating} />
+            </div>
+          </Field>
+          <Field label="Feedback da conclusão">
+            <textarea
+              name="closure_reason"
+              required
+              minLength={5}
+              maxLength={1000}
+              rows={4}
+              placeholder="Descreva como ficou a entrega, ajustes feitos ou observações finais."
+            />
+          </Field>
+          <p className="muted">
+            As fotos, a nota e o feedback ajudam a registrar a entrega para o cliente e o
+            profissional.
+          </p>
+        </>
+      ) : (
+        <Field label={status === 'paused' ? 'Motivo da pausa' : 'Motivo do encerramento'}>
+          <textarea
+            name="closure_reason"
+            required
+            minLength={5}
+            maxLength={1000}
+            rows={4}
+            placeholder={
+              status === 'paused'
+                ? 'Explique por que o serviço ficará pausado.'
+                : 'Explique por que o serviço não foi concluído.'
+            }
+          />
+        </Field>
+      )}
+      <button className="button full" disabled={busy}>
+        Salvar encerramento <Check size={18} />
       </button>
     </form>
   );
@@ -595,6 +860,7 @@ function getModalTitle(modal, authMode) {
     notifications: 'Suas notificações',
     confirm: 'Confirmar contratação',
     complete: 'Concluir serviço',
+    'finish-service': 'Encerrar serviço',
     help: 'Da ideia ao último acabamento.',
   };
 

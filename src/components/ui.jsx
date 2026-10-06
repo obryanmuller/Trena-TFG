@@ -3,8 +3,12 @@ import { BriefcaseBusiness, ImagePlus, X } from 'lucide-react';
 import { STATUSES } from '../app/config';
 import { getInitials } from '../app/formatters';
 
-export function Avatar({ name, large = false }) {
-  return <span className={'avatar ' + (large ? 'large' : '')}>{getInitials(name)}</span>;
+export function Avatar({ name, image = '', large = false }) {
+  return (
+    <span className={'avatar ' + (large ? 'large' : '')}>
+      {image ? <img src={image} alt={'Foto de ' + name} /> : getInitials(name)}
+    </span>
+  );
 }
 
 export function Status({ value }) {
@@ -35,7 +39,7 @@ export function Field({ label, children }) {
   );
 }
 
-export function Modal({ title, onClose, children }) {
+export function Modal({ title, onClose, children, className = '', hideHeading = false }) {
   const dialog = useRef();
 
   useEffect(() => {
@@ -47,6 +51,7 @@ export function Modal({ title, onClose, children }) {
   return (
     <dialog
       aria-labelledby="modal-title"
+      className={className}
       ref={dialog}
       onCancel={(event) => {
         event.preventDefault();
@@ -56,21 +61,33 @@ export function Modal({ title, onClose, children }) {
         if (event.target === dialog.current) onClose();
       }}
     >
-      <div className="modal-heading">
-        <div>
-          <span className="eyebrow">TRENA · CONEXÕES QUE CONSTROEM</span>
-          <h2 id="modal-title">{title}</h2>
-        </div>
-        <button className="icon-button" onClick={onClose} aria-label="Fechar">
+      {hideHeading ? (
+        <button className="icon-button modal-close" onClick={onClose} aria-label="Fechar">
           <X />
         </button>
-      </div>
+      ) : (
+        <div className="modal-heading">
+          <div>
+            <span className="eyebrow">TRENA · CONEXÕES QUE CONSTROEM</span>
+            <h2 id="modal-title">{title}</h2>
+          </div>
+          <button className="icon-button" onClick={onClose} aria-label="Fechar">
+            <X />
+          </button>
+        </div>
+      )}
       {children}
     </dialog>
   );
 }
 
-export function ImagesInput({ value, onChange, label = 'Fotos do serviço', onError }) {
+export function ImagesInput({
+  value,
+  onChange,
+  label = 'Fotos do serviço',
+  onError,
+  showPreview = true,
+}) {
   async function loadImages(event) {
     const files = Array.from(event.target.files);
 
@@ -102,7 +119,7 @@ export function ImagesInput({ value, onChange, label = 'Fotos do serviço', onEr
           onChange={loadImages}
         />
       </label>
-      {value.length > 0 && (
+      {showPreview && value.length > 0 && (
         <div className="image-grid">
           {value.map((image, index) => (
             <div key={image.slice(-40) + index}>

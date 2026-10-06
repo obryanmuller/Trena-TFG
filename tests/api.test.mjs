@@ -127,7 +127,14 @@ test('fluxo integrado: anúncio com imagem, interesse, chat, contratação, conc
   );
   assert.ok(!(await req('/services')).data.some((s) => s.id === id));
   assert.equal(
-    (await req(`/services/${id}/status`, 'PATCH', { status: 'completed' }, client)).status,
+    (
+      await req(
+        `/services/${id}/status`,
+        'PATCH',
+        { status: 'completed', closure_reason: 'Entrega concluída conforme combinado.' },
+        client,
+      )
+    ).status,
     200,
   );
   assert.equal(
@@ -142,8 +149,13 @@ test('fluxo integrado: anúncio com imagem, interesse, chat, contratação, conc
     201,
   );
   const profile = await req('/professionals/demo-pro');
-  assert.equal(profile.data.rating, 5);
-  assert.equal(profile.data.review_count, 1);
+  assert.equal(profile.data.rating, 4.85);
+  assert.equal(profile.data.review_count, 2);
+  assert.equal(
+    profile.data.completed_services.find((service) => service.id === 'demo-completed-1')
+      .review_rating,
+    4.7,
+  );
   assert.equal(
     (
       await req(
@@ -267,8 +279,14 @@ test('validações rejeitam orçamento, prazo, categoria e imagens inválidas', 
     );
   const result = await req('/services', 'POST', service, client);
   assert.equal(
-    (await req(`/services/${result.data.id}/status`, 'PATCH', { status: 'completed' }, client))
-      .status,
+    (
+      await req(
+        `/services/${result.data.id}/status`,
+        'PATCH',
+        { status: 'completed', closure_reason: 'Entrega concluída conforme combinado.' },
+        client,
+      )
+    ).status,
     409,
   );
 });
@@ -347,7 +365,12 @@ test('não se contrata profissional sem negociação nem se reabre serviço conc
     { status: 'active', professional_id: 'demo-pro' },
     client,
   );
-  await req(`/services/${id}/status`, 'PATCH', { status: 'completed' }, client);
+  await req(
+    `/services/${id}/status`,
+    'PATCH',
+    { status: 'completed', closure_reason: 'Entrega concluída conforme combinado.' },
+    client,
+  );
   assert.equal(
     (await req(`/services/${id}/status`, 'PATCH', { status: 'open' }, client)).status,
     409,
@@ -356,6 +379,87 @@ test('não se contrata profissional sem negociação nem se reabre serviço conc
     (await req(`/services/${id}/reviews`, 'POST', { rating: 6, comment: 'Nota inválida.' }, client))
       .status,
     400,
+  );
+});
+
+test('cliente encerra serviço ativo como concluído, pausado ou não concluído', async (t) => {
+  const { req, client, pro } = await setup(t);
+
+  async function activeService(title) {
+    const result = await req('/services', 'POST', { ...service, title }, client);
+    await req(`/services/${result.data.id}/interest`, 'POST', {}, pro);
+    await req(
+      `/services/${result.data.id}/status`,
+      'PATCH',
+      { status: 'active', professional_id: 'demo-pro' },
+      client,
+    );
+    return result.data.id;
+  }
+
+  const completed = await activeService('Serviço com fotos finais');
+  assert.equal(
+    (
+      await req(
+        `/services/${completed}/status`,
+        'PATCH',
+        {
+          status: 'completed',
+          completion_images: [image],
+          closure_reason: 'Entrega feita com acabamento revisado e limpeza final.',
+          rating: 4.7,
+        },
+        client,
+      )
+    ).status,
+    200,
+  );
+  const completedService = (await req('/services?mine=1', 'GET', undefined, client)).data.find(
+    (item) => item.id === completed,
+  );
+  assert.equal(completedService.status, 'completed');
+  assert.equal(completedService.completion_images.length, 1);
+  assert.equal(
+    completedService.closure_reason,
+    'Entrega feita com acabamento revisado e limpeza final.',
+  );
+  assert.equal(completedService.review_rating, 4.7);
+
+  const paused = await activeService('Serviço pausado pelo cliente');
+  await req(
+    `/services/${paused}/status`,
+    'PATCH',
+    { status: 'paused', closure_reason: 'Aguardando liberação do condomínio.' },
+    client,
+  );
+  const pausedService = (await req('/services?mine=1', 'GET', undefined, client)).data.find(
+    (item) => item.id === paused,
+  );
+  assert.equal(pausedService.status, 'paused');
+  assert.equal(pausedService.closure_reason, 'Aguardando liberação do condomínio.');
+
+  const notCompleted = await activeService('Serviço encerrado sem conclusão');
+  await req(
+    `/services/${notCompleted}/status`,
+    'PATCH',
+    { status: 'not_completed', closure_reason: 'Escopo cancelado pelo cliente.' },
+    client,
+  );
+  const closedService = (await req('/services?mine=1', 'GET', undefined, client)).data.find(
+    (item) => item.id === notCompleted,
+  );
+  assert.equal(closedService.status, 'not_completed');
+  assert.equal(closedService.closure_reason, 'Escopo cancelado pelo cliente.');
+  assert.equal(
+    (
+      await req(
+        `/services/${notCompleted}/reviews`,
+        'POST',
+        { rating: 5, comment: 'Teste.' },
+        client,
+      )
+    ).status,
+    403,
   );
 });
 

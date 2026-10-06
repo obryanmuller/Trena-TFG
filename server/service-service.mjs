@@ -1,5 +1,5 @@
 import { fail, toService } from './domain.mjs';
-import { reviewInput, serviceInput } from './validation.mjs';
+import { imageList, reviewInput, serviceInput, textField } from './validation.mjs';
 
 const SERVICE_SELECT = `SELECT s.*,u.name client_name,p.name professional_name,(SELECT COUNT(*) FROM conversations c WHERE c.service_id=s.id) conversation_count,(SELECT rating FROM reviews r WHERE r.service_id=s.id) review_rating FROM services s JOIN users u ON u.id=s.client_id LEFT JOIN users p ON p.id=s.professional_id`;
 
@@ -102,13 +102,20 @@ export class ServiceService {
     if (!service) fail(404, 'Serviço não encontrado.');
 
     const professionalId = this.nextProfessionalId(service, input);
+    const closure = this.parseClosure(input, service);
     this.db
-      .prepare('UPDATE services SET status=?,professional_id=? WHERE id=?')
-      .run(input.status, professionalId, service.id);
+      .prepare(
+        'UPDATE services SET status=?,professional_id=?,completion_images=?,closure_reason=? WHERE id=?',
+      )
+      .run(input.status, professionalId, closure.images, closure.reason, service.id);
+
+    if (input.status === 'completed' && input.rating) {
+      this.createReviewFromClosure(service, professionalId, input);
+    }
 
     this.notifications.create(
       professionalId,
-      `${service.title}: ${input.status === 'active' ? 'contratação confirmada' : 'serviço concluído'}.`,
+      `${service.title}: ${this.statusMessage(input.status)}.`,
     );
   }
 
@@ -177,8 +184,76 @@ export class ServiceService {
       return professionalId;
     }
 
-    if (input.status === 'completed' && service.status === 'active') return service.professional_id;
+    if (
+      ['completed', 'paused', 'not_completed'].includes(input.status) &&
+      service.status === 'active'
+    ) {
+      return service.professional_id;
+    }
 
     fail(409, 'Esta mudança de status não é permitida.');
+  }
+
+  parseClosure(input, service) {
+    if (input.status === 'completed') {
+      return {
+        images: JSON.stringify(imageList(input.completion_images || [])),
+        reason: textField(input.closure_reason, 'Feedback', 5, 1000),
+      };
+    }
+
+    if (input.status === 'not_completed') {
+      return {
+        images: '[]',
+        reason: textField(input.closure_reason, 'Motivo', 5, 1000),
+      };
+    }
+
+    if (input.status === 'paused') {
+      return {
+        images: '[]',
+        reason: textField(
+          input.closure_reason || 'Serviço pausado pelo cliente.',
+          'Motivo',
+          5,
+          1000,
+        ),
+      };
+    }
+
+    return {
+      images: service.completion_images || '[]',
+      reason: service.closure_reason || '',
+    };
+  }
+
+  createReviewFromClosure(service, professionalId, input) {
+    if (this.db.prepare('SELECT id FROM reviews WHERE service_id=?').get(service.id)) return;
+
+    const review = reviewInput({
+      rating: input.rating,
+      comment: input.closure_reason,
+    });
+    this.db
+      .prepare(
+        'INSERT INTO reviews(id,service_id,client_id,professional_id,rating,comment) VALUES(?,?,?,?,?,?)',
+      )
+      .run(
+        this.idFactory(),
+        service.id,
+        service.client_id,
+        professionalId,
+        review.rating,
+        review.comment,
+      );
+  }
+
+  statusMessage(status) {
+    return {
+      active: 'contratação confirmada',
+      completed: 'serviço concluído',
+      paused: 'serviço pausado',
+      not_completed: 'serviço encerrado como não concluído',
+    }[status];
   }
 }

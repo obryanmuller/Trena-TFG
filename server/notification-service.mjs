@@ -16,6 +16,18 @@ export class NotificationService {
       .all(userId);
   }
 
+  markAsRead(userId, notificationId) {
+    this.db
+      .prepare('UPDATE notifications SET is_read=1 WHERE user_id=? AND id=?')
+      .run(userId, notificationId);
+  }
+
+  markConversationAsRead(userId, conversationId) {
+    this.db
+      .prepare('UPDATE notifications SET is_read=1 WHERE user_id=? AND conversation_id=?')
+      .run(userId, conversationId);
+  }
+
   markAllAsRead(userId) {
     this.db.prepare('UPDATE notifications SET is_read=1 WHERE user_id=?').run(userId);
   }

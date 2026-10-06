@@ -112,6 +112,16 @@ export function createApp(db, { secureCookies = false, allowedOrigins = [] } = {
     res.json({ ok: true });
   });
 
+  app.patch('/api/notifications/conversation/:id/read', requireAuth, (req, res) => {
+    notifications.markConversationAsRead(req.user.id, req.params.id);
+    res.json({ ok: true });
+  });
+
+  app.patch('/api/notifications/:id/read', requireAuth, (req, res) => {
+    notifications.markAsRead(req.user.id, req.params.id);
+    res.json({ ok: true });
+  });
+
   app.use('/api', (req, res) => res.status(404).json({ error: 'Rota não encontrada.' }));
   serveClientBuild(app);
   app.use(errorHandler);
