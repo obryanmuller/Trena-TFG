@@ -29,7 +29,9 @@ export function toPublicUser(user) {
     city: user.city,
     specialty: user.specialty,
     bio: user.bio,
-    portfolio: JSON.parse(user.portfolio),
+    portfolio: JSON.parse(String(user.portfolio || '[]').trim() || '[]'),
+    avatar_image: user.avatar_image || '',
+    cover_image: user.cover_image || '',
     rating: user.rating || null,
     review_count: user.review_count || 0,
   };
@@ -40,5 +42,10 @@ export function toAuthenticatedUser(user) {
 }
 
 export function toService(row) {
-  return { ...row, images: JSON.parse(row.images) };
+  return {
+    ...row,
+    images: JSON.parse(String(row.images || '[]')),
+    completion_images: JSON.parse(String(row.completion_images || '[]')),
+    closure_reason: row.closure_reason || '',
+  };
 }

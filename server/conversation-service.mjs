@@ -11,7 +11,7 @@ export class ConversationService {
   listByUser(user) {
     return this.db
       .prepare(
-        `SELECT c.*,s.title,s.status,s.professional_id assigned_professional_id,u.name client_name,p.name professional_name,(SELECT text FROM messages m WHERE m.conversation_id=c.id ORDER BY m.rowid DESC LIMIT 1) last_message FROM conversations c JOIN services s ON s.id=c.service_id JOIN users u ON u.id=c.client_id JOIN users p ON p.id=c.professional_id WHERE c.client_id=? OR c.professional_id=? ORDER BY (SELECT MAX(rowid) FROM messages WHERE conversation_id=c.id) DESC,c.rowid DESC`,
+        `SELECT c.*,s.title,s.status,s.budget,s.deadline,s.professional_id assigned_professional_id,u.name client_name,p.name professional_name,(SELECT text FROM messages m WHERE m.conversation_id=c.id ORDER BY m.rowid DESC LIMIT 1) last_message FROM conversations c JOIN services s ON s.id=c.service_id JOIN users u ON u.id=c.client_id JOIN users p ON p.id=c.professional_id WHERE c.client_id=? OR c.professional_id=? ORDER BY (SELECT MAX(rowid) FROM messages WHERE conversation_id=c.id) DESC,c.rowid DESC`,
       )
       .all(user.id, user.id);
   }

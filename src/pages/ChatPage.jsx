@@ -1,10 +1,12 @@
-import { Check, Send } from 'lucide-react';
-import { formatTime } from '../app/formatters';
+import { useState } from 'react';
+import { Calculator, Check, Send } from 'lucide-react';
+import { formatCurrency, formatDate, formatTime } from '../app/formatters';
 import { Avatar, Empty, ImagesInput, Status } from '../components/ui';
 
 export default function ChatPage({
   user,
   conversations,
+  services = [],
   selectedChat,
   messages,
   message,
@@ -16,10 +18,26 @@ export default function ChatPage({
   onAttachmentChange,
   onAttachmentError,
   onSendMessage,
+  onSendCounterProposal,
   onConfirmHiring,
 }) {
   const isClient = user?.role === 'client';
   const currentChat = conversations.find((conversation) => conversation.id === selectedChat);
+  const currentService = services.find((service) => service.id === currentChat?.service_id);
+  const referenceBudget = currentChat?.budget ?? currentService?.budget;
+  const referenceDeadline = currentChat?.deadline ?? currentService?.deadline;
+  const hasReferenceBudget = Number.isFinite(Number(referenceBudget));
+  const hasReferenceDeadline = Boolean(referenceDeadline);
+  const canSendCounterProposal = !isClient && currentChat?.status === 'negotiating';
+  const [proposalOpen, setProposalOpen] = useState(false);
+
+  function handleCounterProposal(event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.currentTarget));
+    onSendCounterProposal(data);
+    event.currentTarget.reset();
+    setProposalOpen(false);
+  }
 
   return (
     <>
@@ -75,6 +93,60 @@ export default function ChatPage({
                   <button className="text-button" onClick={() => onConfirmHiring(currentChat)}>
                     Confirmar contratação <Check size={16} />
                   </button>
+                </div>
+              )}
+              {canSendCounterProposal && (
+                <div className="counter-proposal-panel">
+                  <div>
+                    <span className="eyebrow">NEGOCIAÇÃO</span>
+                    <h3>Envie uma contraproposta</h3>
+                    <p>
+                      Referência do cliente:{' '}
+                      {hasReferenceBudget ? formatCurrency(referenceBudget) : 'valor não informado'}
+                      {hasReferenceDeadline ? ` até ${formatDate(referenceDeadline)}` : ''}.
+                    </p>
+                  </div>
+                  {!proposalOpen ? (
+                    <button className="button small" onClick={() => setProposalOpen(true)}>
+                      Propor valor e prazo <Calculator size={16} />
+                    </button>
+                  ) : (
+                    <form className="counter-proposal-form" onSubmit={handleCounterProposal}>
+                      <input
+                        name="budget"
+                        type="number"
+                        min="0.01"
+                        max="10000000"
+                        step="0.01"
+                        required
+                        placeholder="Valor (R$)"
+                        aria-label="Valor da contraproposta"
+                      />
+                      <input
+                        name="deadline"
+                        type="date"
+                        required
+                        min={new Date().toISOString().slice(0, 10)}
+                        aria-label="Prazo da contraproposta"
+                      />
+                      <input
+                        name="note"
+                        maxLength={220}
+                        placeholder="Observação opcional"
+                        aria-label="Observação da contraproposta"
+                      />
+                      <button className="button" disabled={busy}>
+                        Enviar <Send size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="text-button"
+                        onClick={() => setProposalOpen(false)}
+                      >
+                        Cancelar
+                      </button>
+                    </form>
+                  )}
                 </div>
               )}
               <div className="messages" aria-live="polite">

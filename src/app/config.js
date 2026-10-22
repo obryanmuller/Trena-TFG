@@ -35,6 +35,8 @@ export const STATUSES = {
   negotiating: 'Em negociação',
   active: 'Em execução',
   completed: 'Concluído',
+  paused: 'Pausado',
+  not_completed: 'Não concluído',
 };
 
 export const NAV_ITEMS = [
@@ -45,4 +47,8 @@ export const NAV_ITEMS = [
   ['chat', 'Mensagens', MessageSquare],
 ];
 
-export const VALID_ROUTES = NAV_ITEMS.map(([route]) => route);
+export const VALID_ROUTES = [
+  ...NAV_ITEMS.map(([route]) => route),
+  'profile',
+  'professional-profile',
+];

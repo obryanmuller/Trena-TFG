@@ -63,10 +63,10 @@ export function AppHeader({ user, unread, onNavigate, onOpenModal, onLogout, onS
               <span className="divider" />
               <button
                 className="account"
-                aria-label={'Editar perfil de ' + user.name}
-                onClick={() => onOpenModal({ type: 'profile' })}
+                aria-label={'Abrir perfil de ' + user.name}
+                onClick={() => onNavigate('profile', true)}
               >
-                <Avatar name={user.name} />
+                <Avatar name={user.name} image={user.avatar_image} />
                 <span>
                   {user.name.split(' ')[0]}
                   <small>{isClient ? 'Cliente' : 'Profissional'}</small>
