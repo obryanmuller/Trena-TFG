@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createDb } from '../server/db.mjs';
 import { createApp } from '../server/app.mjs';
+import { getAllowedOrigins } from '../server/config.mjs';
 
 const image =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
@@ -491,4 +492,29 @@ test('origem de desenvolvimento explícita aceita login e corpos inválidos são
     ).status,
     403,
   );
+});
+
+
+test('login HTTPS do Render aceita origem pública e bloqueia origem externa', async (t) => {
+  const allowedOrigins = getAllowedOrigins({
+    NODE_ENV: 'production',
+    RENDER_EXTERNAL_URL: 'https://trena-test.onrender.com/',
+    DEV_CLIENT_ORIGIN: 'http://localhost:5173',
+  });
+  const { req } = await setup(t, { allowedOrigins, secureCookies: true });
+  const credentials = { email: 'cliente@trena.demo', password: 'Trena@2026' };
+  const login = await req('/auth/login', 'POST', credentials, '', {
+    Origin: 'https://trena-test.onrender.com',
+  });
+  assert.equal(login.status, 200);
+  assert.ok(login.cookie);
+  assert.equal((await req('/auth/me', 'GET', undefined, login.cookie)).data.user.email,
+    credentials.email);
+  for (const origin of ['https://external.example', 'http://localhost:5173']) {
+    assert.equal((await req('/auth/login', 'POST', credentials, '', {
+      Origin: origin,
+      'X-Forwarded-Host': 'external.example',
+      'X-Forwarded-Proto': 'https',
+    })).status, 403);
+  }
 });

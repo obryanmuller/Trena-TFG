@@ -1,5 +1,6 @@
 import { createDb } from './db.mjs';
 import { createApp } from './app.mjs';
+import { getAllowedOrigins } from './config.mjs';
 try {
   process.loadEnvFile();
 } catch (error) {
@@ -9,10 +10,7 @@ const db = createDb(process.env.DB_PATH || 'data/trena.sqlite', process.env.DEMO
 const port = Number(process.env.PORT || 4311);
 const server = createApp(db, {
   secureCookies: process.env.NODE_ENV === 'production',
-  allowedOrigins:
-    process.env.NODE_ENV !== 'production' && process.env.DEV_CLIENT_ORIGIN
-      ? [process.env.DEV_CLIENT_ORIGIN]
-      : [],
+  allowedOrigins: getAllowedOrigins(process.env),
 }).listen(port, process.env.HOST || '127.0.0.1', () =>
   console.log(`TRENA API disponível em http://127.0.0.1:${port}`),
 );
